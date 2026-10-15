@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MMATA Sniper</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#080b12;color:#f2f4f8;font-family:Arial,sans-serif;padding:18px}
+header{text-align:center;padding:18px 0}
+h1{margin:0;color:#e7b65b;font-size:28px}
+.sub{color:#929bad;font-size:12px;letter-spacing:2px;margin-top:7px}
+.card{background:#111722;border:1px solid #293345;border-radius:14px;padding:16px;margin:15px 0}
+h2{font-size:17px;margin:0 0 14px}
+label{display:block;color:#aab4c5;font-size:13px;margin:12px 0 6px}
+input,select,button{width:100%;padding:12px;border-radius:9px;border:1px solid #354156;background:#0a0f18;color:white;font-size:15px}
+button{background:#e7b65b;color:#111;font-weight:bold;border:0;margin-top:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.signal{text-align:center;padding:16px;border-radius:10px;background:#0a0f18;font-size:20px;font-weight:bold}
+.muted{color:#9ba6b8;font-size:13px;line-height:1.5}
+.green{color:#40df9b}.red{color:#ff737d}
+.result{line-height:1.8;overflow-wrap:anywhere}
+li{margin:9px 0;overflow-wrap:anywhere}
+footer{text-align:center;color:#697589;font-size:11px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>🐺 MMATA SNIPER</h1>
+<div class="sub">CRT • CONFIRMATION • PRECISION</div>
+<p class="muted">Your trading analysis dashboard</p>
+</header>
+
+<div class="card">
+<h2>🎯 Market Setup</h2>
+<label>Market</label>
+<select id="market">
+<option>BTC</option><option>XAUUSD</option>
+<option>Volatility 75</option>
+</select>
+<label>Timeframe</label>
+<select id="tf"><option>5 minutes</option>
+<option>15 minutes</option><option>1 hour</option>
+<option>4 hours</option></select>
+<div class="muted">Signals are calculated from the levels you enter. No live market feed is connected.</div>
+</div>
+
+<div class="card">
+<h2>📐 CRT Range</h2>
+<div class="grid">
+<div><label>Range High</label><input id="high" type="number" step="any" placeholder="e.g. 90000"></div>
+<div><label>Range Low</label><input id="low" type="number" step="any" placeholder="e.g. 89000"></div>
+<div><label>Current Price</label><input id="price" type="number" step="any" placeholder="Current price"></div>
+<div><label>Confirmation</label><select id="confirm"><option value="none">Not confirmed</option><option value="buy">Bullish candle</option><option value="sell">Bearish candle</option></select></div>
+</div>
+<button onclick="analyse()">ANALYSE SETUP</button>
+<div id="signal" class="signal" style="margin-top:14px">WAIT FOR SETUP</div>
+<div id="analysis" class="result muted"></div>
+</div>
+
+<div class="card">
+<h2>🛡️ TP / SL Calculator</h2>
+<label>Entry Price</label><input id="entry" type="number" step="any" placeholder="Entry price">
+<label>Direction</label><select id="direction"><option value="buy">BUY</option><option value="sell">SELL</option></select>
+<div class="grid">
+<div><label>Stop loss (%)</label><input id="sl" type="number" value="1" min="0.01" step="any"></div>
+<div><label>Take profit (%)</label><input id="tp" type="number" value="2" min="0.01" step="any"></div>
+</div>
+<button onclick="calculate()">CALCULATE TP / SL</button>
+<div id="levels" class="result muted"></div>
+</div>
+
+<div class="card">
+<h2>📓 Trade Journal</h2>
+<label>Trade notes</label>
+<input id="notes" placeholder="Setup, reason, result...">
+<button onclick="saveTrade()">SAVE JOURNAL ENTRY</button>
+<ul id="journal"></ul>
+<button onclick="clearJournal()" style="background:#293345;color:white">CLEAR JOURNAL</button>
+</div>
+
+<footer>MMATA SNIPER v1.0 • ANALYSIS TOOL ONLY<br>Confirm setups independently. Trading involves risk.</footer>
+
+<script>
+function val(id){return Number(document.getElementById(id).value)}
+function fmt(n){return n.toLocaleString(undefined,{maximumFractionDigits:8})}
+function analyse(){
+ const h=val('high'),l=val('low'),p=val('price');
+ const c=document.getElementById('confirm').value;
+ const box=document.getElementById('signal'),out=document.getElementById('analysis');
+ if(![h,l,p].every(Number.isFinite)||!document.getElementById('high').value||!document.getElementById('low').value||!document.getElementById('price').value||h<=l){
+ box.textContent='CHECK YOUR LEVELS';out.textContent='Enter valid prices and ensure High is greater than Low.';return;
+ }
+ let msg='WAIT — NO CONFIRMED SIGNAL',cls='';
+ if(p>h&&c==='buy'){msg='BUY CONFIRMATION';cls='green'}
+ else if(p<l&&c==='sell'){msg='SELL CONFIRMATION';cls='red'}
+ box.textContent=msg;box.className='signal '+cls;
+ out.textContent='Market: '+document.getElementById('market').value+' | TF: '+document.getElementById('tf').value+'. Range: '+fmt(l)+'–'+fmt(h)+'. Price must break the range and match the selected candle direction. This is a basic rule check, not a complete CRT strategy.';
+}
+function calculate(){
+ const e=val('entry'),s=val('sl'),t=val('tp');
+ const d=document.getElementById('direction').value;
+ if(!document.getElementById('entry').value||!Number.isFinite(e)||e<=0||!Number.isFinite(s)||!Number.isFinite(t)||s<=0||t<=0){
+ document.getElementById('levels').textContent='Enter a positive entry price and TP/SL percentages.';return;
+ }
+ const buy=d==='buy';
+ document.getElementById('levels').innerHTML='Entry: '+fmt(e)+'<br>Stop Loss: '+fmt(e*(1+(buy?-1:1)*s/100))+'<br>Take Profit: '+fmt(e*(1+(buy?1:-1)*t/100))+'<br>Risk distance: '+s+'% | Target distance: '+t+'%';
+}
+function getJournal(){try{return JSON.parse(localStorage.getItem('mmataJournal')||'[]')}catch(e){return []}}
+function renderJournal(){
+ const list=document.getElementById('journal');list.replaceChildren();
+ getJournal().forEach(item=>{const li=document.createElement('li');li.textContent=item;list.appendChild(li)});
+}
+function saveTrade(){
+ const n=document.getElementById('notes').value.trim();
+ if(!n){alert('Write your trade notes first.');return}
+ const items=getJournal();items.unshift(new Date().toLocaleString()+' — '+n);
+ try{localStorage.setItem('mmataJournal',JSON.stringify(items));document.getElementById('notes').value='';renderJournal()}
+ catch(e){alert('Could not save. Your browser may block local storage.')}
+}
+function clearJournal(){
+ if(confirm('Clear all journal entries?')){localStorage.removeItem('mmataJournal');renderJournal()}
+}
+renderJournal();
+</script>
+</body>
+</html>
